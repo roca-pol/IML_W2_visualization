@@ -46,20 +46,22 @@ def pca_satimage():
 
     # transform dataset with PCA
     pca = PCA(3, verbose=True)
-    pca_sk = skPCA(3)
-    X_trans_sk = pca_sk.fit_transform(X)
     X_trans = pca.fit_transform(X)
 
-    fig = plt.figure()
+    # reconstruct original dataset
+    X_recons = pca.inverse_transform(X_trans)
+
+
+    fig = plt.figure(figsize=(15, 5))
     ax = fig.add_subplot(1, 3, 1)
-    ax.set_title('First features')
+    ax.set_title('SatImage first features')
     ax.plot(X.iloc[:, 0].values, X.iloc[:, 1].values, 'o')  # , dataPCA[:,2],'o')
     ax = fig.add_subplot(1, 3, 2)
-    ax.set_title('sklearn PCA')
-    ax.plot(X_trans_sk[:, 0], X_trans_sk[:, 1], 'o')  # , dataPCA[:,2],'o')
-    ax = fig.add_subplot(1, 3, 3)
-    ax.set_title('Our PCA')
+    ax.set_title('SatImage PCA')
     ax.plot(X_trans[:, 0], X_trans[:, 1], 'o')  # , dataPCA[:,2],'o')
+    ax = fig.add_subplot(1, 3, 3)
+    ax.set_title('Recontructed SatImage dataset')
+    ax.plot(X_recons[:, 0], X_recons[:, 1], 'o')  # , dataPCA[:,2],'o')
     plt.show()
 
     fig = plt.figure(figsize=(15, 5))
@@ -67,9 +69,6 @@ def pca_satimage():
     ax.set_title('First features')
     ax.plot3D(X.iloc[:, 0].values, X.iloc[:, 1].values, X.iloc[:, 2].values,'o')  # , dataPCA[:,2],'o')
     ax = fig.add_subplot(1, 3, 2, projection='3d')
-    ax.set_title('sklearn PCA')
-    ax.plot3D(X_trans_sk[:, 0], X_trans_sk[:, 1], X_trans_sk[:, 2], 'o')  # , dataPCA[:,2],'o')
-    ax = fig.add_subplot(1, 3, 3, projection='3d')
     ax.set_title('Our PCA')
     ax.plot3D(X_trans[:, 0], X_trans[:, 1], X_trans[:, 2], 'o')  # , dataPCA[:,2],'o')
     plt.show()
@@ -141,6 +140,30 @@ def pca_comparison_kropt():
 
 def pca_comparison_satimage():
     X, y = datasets.load_satimage()
+
+    pca = PCA(3, verbose=True)
+    X_trans1 = pca.fit_transform(X)
+
+    skpca = skPCA(3)
+    X_trans2 = skpca.fit_transform(X)
+
+    # transform dataset with sklearn's IncrementalPCA
+    ipca = IncrementalPCA(3)
+    X_trans3 = ipca.fit_transform(X)
+
+    fig = plt.figure(figsize=(15, 5))
+    ax = fig.add_subplot(1, 3, 1)
+    ax.set_title('SatImage PCA')
+    ax.plot(X_trans1[:, 0], X_trans1[:, 1], 'o')  # , dataPCA[:,2],'o')
+    ax = fig.add_subplot(1, 3, 2)
+    ax.set_title('SatImage sklearn PCA')
+    ax.plot(X_trans2[:, 0], X_trans2[:, 1], 'o')  # , dataPCA[:,2],'o')
+    ax = fig.add_subplot(1, 3, 3)
+    ax.set_title('SatImage sklearn IncrementalPCA')
+    ax.plot(X_trans3[:, 0], X_trans3[:, 1], 'o')  # , dataPCA[:,2],'o')
+    plt.show()
+
+    plt.show()
 
 
 def pca_comparison_credita():
