@@ -2,7 +2,7 @@ import sys
 import click
 import numpy as np
 from matplotlib import pyplot as plt
-
+from mpl_toolkits.mplot3d import Axes3D
 from sklearn import metrics
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA as skPCA
@@ -43,6 +43,36 @@ def pca_kropt():
 
 def pca_satimage():
     X, y = datasets.load_satimage()
+
+    # transform dataset with PCA
+    pca = PCA(3, verbose=True)
+    pca_sk = skPCA(3)
+    X_trans_sk = pca_sk.fit_transform(X)
+    X_trans = pca.fit_transform(X)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 3, 1)
+    ax.set_title('First features')
+    ax.plot(X.iloc[:, 0].values, X.iloc[:, 1].values, 'o')  # , dataPCA[:,2],'o')
+    ax = fig.add_subplot(1, 3, 2)
+    ax.set_title('sklearn PCA')
+    ax.plot(X_trans_sk[:, 0], X_trans_sk[:, 1], 'o')  # , dataPCA[:,2],'o')
+    ax = fig.add_subplot(1, 3, 3)
+    ax.set_title('Our PCA')
+    ax.plot(X_trans[:, 0], X_trans[:, 1], 'o')  # , dataPCA[:,2],'o')
+    plt.show()
+
+    fig = plt.figure(figsize=(15, 5))
+    ax = fig.add_subplot(1, 3, 1, projection='3d')
+    ax.set_title('First features')
+    ax.plot3D(X.iloc[:, 0].values, X.iloc[:, 1].values, X.iloc[:, 2].values,'o')  # , dataPCA[:,2],'o')
+    ax = fig.add_subplot(1, 3, 2, projection='3d')
+    ax.set_title('sklearn PCA')
+    ax.plot3D(X_trans_sk[:, 0], X_trans_sk[:, 1], X_trans_sk[:, 2], 'o')  # , dataPCA[:,2],'o')
+    ax = fig.add_subplot(1, 3, 3, projection='3d')
+    ax.set_title('Our PCA')
+    ax.plot3D(X_trans[:, 0], X_trans[:, 1], X_trans[:, 2], 'o')  # , dataPCA[:,2],'o')
+    plt.show()
 
 
 def pca_credita():
