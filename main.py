@@ -12,7 +12,7 @@ import datasets
 from analysis import PCA
 from cluster import KMeans
 from evaluation import print_binary_metrics
-
+import pandas as pd
 
 @click.group()
 def cli():
@@ -45,7 +45,7 @@ def pca_satimage():
     X, y = datasets.load_satimage()
 
     # transform dataset with PCA
-    pca = PCA(3, verbose=True)
+    pca = PCA(2, verbose=True)
     X_trans = pca.fit_transform(X)
 
     # reconstruct original dataset
@@ -54,24 +54,30 @@ def pca_satimage():
 
     fig = plt.figure(figsize=(15, 5))
     ax = fig.add_subplot(1, 3, 1)
-    ax.set_title('SatImage first features')
+    ax.set_title('SatImage dataset')
     ax.plot(X.iloc[:, 0].values, X.iloc[:, 1].values, 'o')  # , dataPCA[:,2],'o')
+    ax.set_xlabel('feature 0')
+    ax.set_ylabel('feature 1')
     ax = fig.add_subplot(1, 3, 2)
-    ax.set_title('SatImage PCA')
+    ax.set_title('2-components PCA on SatImage')
     ax.plot(X_trans[:, 0], X_trans[:, 1], 'o')  # , dataPCA[:,2],'o')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
     ax = fig.add_subplot(1, 3, 3)
     ax.set_title('Recontructed SatImage dataset')
     ax.plot(X_recons[:, 0], X_recons[:, 1], 'o')  # , dataPCA[:,2],'o')
+    ax.set_xlabel('feature 0')
+    ax.set_ylabel('feature 1')
     plt.show()
 
-    fig = plt.figure(figsize=(15, 5))
-    ax = fig.add_subplot(1, 3, 1, projection='3d')
-    ax.set_title('First features')
-    ax.plot3D(X.iloc[:, 0].values, X.iloc[:, 1].values, X.iloc[:, 2].values,'o')  # , dataPCA[:,2],'o')
-    ax = fig.add_subplot(1, 3, 2, projection='3d')
-    ax.set_title('Our PCA')
-    ax.plot3D(X_trans[:, 0], X_trans[:, 1], X_trans[:, 2], 'o')  # , dataPCA[:,2],'o')
-    plt.show()
+    # fig = plt.figure(figsize=(15, 5))
+    # ax = fig.add_subplot(1, 3, 1, projection='3d')
+    # ax.set_title('First features')
+    # ax.plot3D(X.iloc[:, 0].values, X.iloc[:, 1].values, X.iloc[:, 2].values,'o')  # , dataPCA[:,2],'o')
+    # ax = fig.add_subplot(1, 3, 2, projection='3d')
+    # ax.set_title('Our PCA')
+    # ax.plot3D(X_trans[:, 0], X_trans[:, 1], X_trans[:, 2], 'o')  # , dataPCA[:,2],'o')
+    # plt.show()
 
 
 def pca_credita():
@@ -138,29 +144,35 @@ def pca_comparison_kropt():
 def pca_comparison_satimage():
     X, y = datasets.load_satimage()
 
-    pca = PCA(3, verbose=True)
+    pca = PCA(2, verbose=True)
     X_trans1 = pca.fit_transform(X)
 
-    skpca = skPCA(3)
+    skpca = skPCA(2)
     X_trans2 = skpca.fit_transform(X)
 
     # transform dataset with sklearn's IncrementalPCA
-    ipca = IncrementalPCA(3)
+    ipca = IncrementalPCA(2)
     X_trans3 = ipca.fit_transform(X)
 
     fig = plt.figure(figsize=(15, 5))
     ax = fig.add_subplot(1, 3, 1)
     ax.set_title('SatImage PCA')
     ax.plot(X_trans1[:, 0], X_trans1[:, 1], 'o')  # , dataPCA[:,2],'o')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
     ax = fig.add_subplot(1, 3, 2)
     ax.set_title('SatImage sklearn PCA')
     ax.plot(X_trans2[:, 0], X_trans2[:, 1], 'o')  # , dataPCA[:,2],'o')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
     ax = fig.add_subplot(1, 3, 3)
     ax.set_title('SatImage sklearn IncrementalPCA')
     ax.plot(X_trans3[:, 0], X_trans3[:, 1], 'o')  # , dataPCA[:,2],'o')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
     plt.show()
 
-    plt.show()
+    #plt.show()
 
 
 def pca_comparison_credita():
@@ -217,8 +229,107 @@ def kmeans_comparison_kropt():
 
 
 def kmeans_comparison_satimage():
+
+    results = []
     X, y = datasets.load_satimage()
 
+    pca = PCA(2, verbose=True)
+    X_trans = pca.fit_transform(X)
+
+    kmeans = KMeans(k=6, n_init=50)
+    y_pred = kmeans.fit_predict(X)
+    results.append(('KMeans', y, y_pred))
+
+    kmeans = KMeans(k=6, n_init=50)
+    y_pred_PCA = kmeans.fit_predict(X_trans)
+    results.append(('KMeans-PCA', y, y_pred_PCA))
+
+    # t-SNE ------------------------
+    # transform dataset with t-SNE
+    best_tsne = TSNE(2)
+    tsne = best_tsne
+    # run several times and keep the best result
+    for _ in range(10):
+        res = tsne.fit_transform(X)
+        print("B")
+        if tsne.kl_divergence_ <= best_tsne.kl_divergence_:
+            best_tsne = tsne
+            X_trans2 = res
+
+        tsne = TSNE(2)
+    # run KMeans on reduced dataset
+    kmeans = KMeans(k=6, n_init=50)
+    y_pred_tSNE = kmeans.fit_predict(X_trans2)
+    results.append(('KMeans-TSNE', y, y_pred_tSNE))
+
+    print(results)
+    print('\n\n')
+    print_binary_metrics(X, results)
+
+    #PCA figures
+    fig = plt.figure(figsize=(15, 5))
+    ax = fig.add_subplot(1, 2, 1)
+    ax.set_title('K-means hist cluster for SatImage')
+    ax.hist(y_pred, zorder=3)
+    ax.set_xlabel('Number of instances', fontsize=13)
+    ax.set_ylabel('Clusters', fontsize=13)
+    ax.grid(zorder=0)
+    ax = fig.add_subplot(1, 2, 2)
+    ax.set_title('K-means on original SatImage dataset')
+    for i in np.unique(y_pred):
+        ax.scatter(X_trans[y_pred == i, 0], X_trans[y_pred == i, 1], alpha=.5, color='C' + str(i + 1), label="cluster " + str(i))
+    ax.set_xlabel('X', fontsize=13)
+    ax.set_ylabel('Y', fontsize=13)
+    plt.show()
+
+    #PCA figures
+    fig = plt.figure(figsize=(15, 5))
+    ax = fig.add_subplot(1, 2, 1)
+    ax.set_title('K-means hist cluster for SatImage')
+    ax.hist(y_pred_PCA, zorder=3)
+    ax.set_xlabel('Number of instances', fontsize=13)
+    ax.set_ylabel('Clusters', fontsize=13)
+    ax.grid(zorder=0)
+    ax = fig.add_subplot(1, 2, 2)
+    ax.set_title('K-means on PCA SatImage')
+    for i in np.unique(y_pred_PCA):
+        ax.scatter(X_trans[y_pred_PCA == i, 0], X_trans[y_pred_PCA == i, 1], alpha=.5, color='C' + str(i + 1), label="cluster " + str(i))
+    ax.set_xlabel('X', fontsize=13)
+    ax.set_ylabel('Y', fontsize=13)
+    plt.show()
+
+
+    #t-SNE figures
+    fig = plt.figure(figsize=(15, 5))
+    ax = fig.add_subplot(1, 2, 1)
+    ax.set_title('K-means t-SNE for SatImage')
+    for i in np.unique(y_pred_tSNE):
+        ax.scatter(X_trans2[y_pred_tSNE == i, 0], X_trans2[y_pred_tSNE == i, 1], alpha=.5, color='C' + str(i + 1), label="cluster " + str(i))
+    ax.set_xlabel('X', fontsize=13)
+    ax.set_ylabel('Y', fontsize=13)
+    ax = fig.add_subplot(1, 2, 2)
+    ax.set_title('K-means on orignal SatImage dataset')
+    for i in np.unique(y_pred):
+        ax.scatter(X_trans2[y_pred == i, 0], X_trans2[y_pred == i, 1], alpha=.5, color='C' + str(i + 1), label="cluster " + str(i))
+    ax.set_xlabel('X', fontsize=13)
+    ax.set_ylabel('Y', fontsize=13)
+    plt.show()
+
+    #Ground Turth Figures
+    fig = plt.figure(figsize=(15, 5))
+    ax = fig.add_subplot(1, 2, 1)
+    ax.set_title('SatImage PCA Ground Truth')
+    for i in np.unique(y):
+        ax.scatter(X_trans[y == i, 0], X_trans[y == i, 1], alpha=.5, color='C' + str(i + 1), label="cluster " + str(i))
+    ax.set_xlabel('X', fontsize=13)
+    ax.set_ylabel('Y', fontsize=13)
+    ax = fig.add_subplot(1, 2, 2)
+    ax.set_title('SatImage t-SNE Ground Truth')
+    for i in np.unique(y):
+        ax.scatter(X_trans2[y == i, 0], X_trans2[y == i, 1], alpha=.5, color='C' + str(i + 1), label="cluster " + str(i))
+    ax.set_xlabel('X', fontsize=13)
+    ax.set_ylabel('Y', fontsize=13)
+    plt.show()
 
 def kmeans_comparison_credita():
     X, y = datasets.load_credita()
@@ -248,7 +359,7 @@ def kmeans_comparison_credita():
     # run several times and keep the best result
     for _ in range(10):
         res = tsne.fit_transform(X)
-
+        print("B")
         if tsne.kl_divergence_ <= best_tsne.kl_divergence_:
             best_tsne = tsne
             X_trans2 = res
