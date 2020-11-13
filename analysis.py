@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+
 def _sanitize(X):
     return X.to_numpy() if isinstance(X, pd.DataFrame) else X
 

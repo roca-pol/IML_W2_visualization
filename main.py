@@ -83,10 +83,9 @@ def pca_credita():
     # plot some cols of the original dataset
     col1 = 'A2'
     col2 = 'A3'
-    ax[0].scatter(X[col1][y == 0], X[col2][y == 0])
-    ax[0].scatter(X[col1][y == 1], X[col2][y == 1])
+    ax[0].scatter(X[col1], X[col2])
 
-    ax[0].title.set_text(f'Credit-A dataset')
+    ax[0].title.set_text('Credit-A dataset')
     ax[0].set_xlabel(col1)
     ax[0].set_ylabel(col2)
 
@@ -95,9 +94,8 @@ def pca_credita():
     # pca = skPCA(2)
     X_trans = pca.fit_transform(X)
 
-    ax[1].scatter(X_trans[y == 0, 0], X_trans[y == 0, 1])
-    ax[1].scatter(X_trans[y == 1, 0], X_trans[y == 1, 1])
-    ax[1].title.set_text(f'Credit-A dataset reduced to 2 dimensions')
+    ax[1].scatter(X_trans[:, 0], X_trans[:, 1])
+    ax[1].title.set_text('Credit-A dataset reduced to 2 dimensions')
 
     # reconstruct original dataset
     X_recons = pca.inverse_transform(X_trans)
@@ -105,10 +103,9 @@ def pca_credita():
     icol1 = X.columns.get_loc(col1)
     icol2 = X.columns.get_loc(col2)
 
-    ax[2].scatter(X_recons[y == 0, icol1], X_recons[y == 0, icol2])
-    ax[2].scatter(X_recons[y == 1, icol1], X_recons[y == 1, icol2])
+    ax[2].scatter(X_recons[:, icol1], X_recons[:, icol2])
     
-    ax[2].title.set_text(f'Recontructed Credit-A dataset')
+    ax[2].title.set_text('Recontructed Credit-A dataset')
     ax[2].set_xlabel(col1)
     ax[2].set_ylabel(col2)
 
@@ -176,25 +173,22 @@ def pca_comparison_credita():
     pca = PCA(2, verbose=True)
     X_trans1 = pca.fit_transform(X)
 
-    ax[0].scatter(X_trans1[y == 0, 0], X_trans1[y == 0, 1])
-    ax[0].scatter(X_trans1[y == 1, 0], X_trans1[y == 1, 1])
-    ax[0].title.set_text(f'Credit-A PCA')
+    ax[0].scatter(X_trans1[:, 0], X_trans1[:, 1])
+    ax[0].title.set_text('2-component PCA on Credit-A')
 
     # transform dataset with sklearn's PCA
     skpca = skPCA(2)
     X_trans2 = skpca.fit_transform(X)
 
-    ax[1].scatter(X_trans2[y == 0, 0], X_trans2[y == 0, 1])
-    ax[1].scatter(X_trans2[y == 1, 0], X_trans2[y == 1, 1])
-    ax[1].title.set_text(f'Credit-A sklearn PCA')
+    ax[1].scatter(X_trans2[:, 0], X_trans2[:, 1])
+    ax[1].title.set_text('2-component PCA (sklearn) on Credit-A')
 
     # transform dataset with sklearn's IncrementalPCA
     ipca = IncrementalPCA(2)
     X_trans3 = ipca.fit_transform(X)
 
-    ax[2].scatter(X_trans3[y == 0, 0], X_trans3[y == 0, 1])
-    ax[2].scatter(X_trans3[y == 1, 0], X_trans3[y == 1, 1])
-    ax[2].title.set_text(f'Credit-A sklearn IncrementalPCA')
+    ax[2].scatter(X_trans3[:, 0], X_trans3[:, 1])
+    ax[2].title.set_text('2-component IncrementalPCA (sklearn) on Credit-A')
 
     plt.show()
 
@@ -248,8 +242,18 @@ def kmeans_comparison_credita():
 
     # t-SNE ------------------------
     # transform dataset with t-SNE
-    tsne = TSNE(2)
-    X_trans2 = tsne.fit_transform(X)
+    best_tsne = TSNE(2)
+    tsne = best_tsne
+
+    # run several times and keep the best result
+    for _ in range(10):
+        res = tsne.fit_transform(X)
+
+        if tsne.kl_divergence_ <= best_tsne.kl_divergence_:
+            best_tsne = tsne
+            X_trans2 = res
+
+        tsne = TSNE(2)
 
     # run KMeans on reduced dataset
     kmeans = KMeans(k=2, n_init=50)
@@ -267,33 +271,33 @@ def kmeans_comparison_credita():
     # PCA --------------------------
     ax[0, 0].scatter(X_trans1[y == 0, 0], X_trans1[y == 0, 1])
     ax[0, 0].scatter(X_trans1[y == 1, 0], X_trans1[y == 1, 1])
-    ax[0, 0].title.set_text(f'Credit-A PCA')
+    ax[0, 0].title.set_text('Credit-A PCA')
 
     y_pred = results[0][2]
     ax[0, 1].scatter(X_trans1[y_pred == 0, 0], X_trans1[y_pred == 0, 1])
     ax[0, 1].scatter(X_trans1[y_pred == 1, 0], X_trans1[y_pred == 1, 1])
-    ax[0, 1].title.set_text(f'KMeans on original dataset')
+    ax[0, 1].title.set_text('KMeans on original dataset')
 
     y_pred = 1 - results[1][2]  # we'll invert labels for visualization purposes
     ax[0, 2].scatter(X_trans1[y_pred == 0, 0], X_trans1[y_pred == 0, 1])
     ax[0, 2].scatter(X_trans1[y_pred == 1, 0], X_trans1[y_pred == 1, 1])
-    ax[0, 2].title.set_text(f'KMeans on dataset PCA')
+    ax[0, 2].title.set_text('KMeans on dataset PCA')
 
 
     # t-SNE -------------------------
     ax[1, 0].scatter(X_trans2[y == 0, 0], X_trans2[y == 0, 1])
     ax[1, 0].scatter(X_trans2[y == 1, 0], X_trans2[y == 1, 1])
-    ax[1, 0].title.set_text(f'Credit-A t-SNE')
+    ax[1, 0].title.set_text('Credit-A t-SNE')
 
     y_pred = results[0][2]
     ax[1, 1].scatter(X_trans2[y_pred == 0, 0], X_trans2[y_pred == 0, 1])
     ax[1, 1].scatter(X_trans2[y_pred == 1, 0], X_trans2[y_pred == 1, 1])
-    ax[1, 1].title.set_text(f'KMeans on original dataset')
+    ax[1, 1].title.set_text('KMeans on original dataset')
 
-    y_pred = 1 - results[2][2]  # we'll invert labels for visualization purposes
+    # y_pred = 1 - results[2][2]  # we'll invert labels for visualization purposes
     ax[1, 2].scatter(X_trans2[y_pred == 0, 0], X_trans2[y_pred == 0, 1])
     ax[1, 2].scatter(X_trans2[y_pred == 1, 0], X_trans2[y_pred == 1, 1])
-    ax[1, 2].title.set_text(f'KMeans on dataset t-SNE')
+    ax[1, 2].title.set_text('KMeans on dataset t-SNE')
 
     plt.show()
 

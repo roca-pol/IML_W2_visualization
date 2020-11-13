@@ -6,6 +6,7 @@ from numpy.random import RandomState
 def sse_l2(x, y):
     return np.sum((x - y) ** 2)
 
+
 def wss(X, labels, centroids):
     """
     Calculate the WSS or cohesion, which is the within SSE
@@ -19,6 +20,7 @@ def wss(X, labels, centroids):
         wss += sse_l2(cluster, centroid)
 
     return wss
+
 
 def bss(X, labels, centroids):
     """
