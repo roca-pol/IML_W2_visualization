@@ -11,7 +11,7 @@ from sklearn.decomposition import IncrementalPCA
 import datasets
 from analysis import PCA
 from cluster import KMeans
-from evaluation import print_binary_metrics
+from evaluation import print_binary_metrics, print_multi_metrics
 import pandas as pd
 
 @click.group()
@@ -232,6 +232,7 @@ def kmeans_comparison_satimage():
 
     results = []
     X, y = datasets.load_satimage()
+    y = y.values.reshape(-1)
 
     pca = PCA(2, verbose=True)
     X_trans = pca.fit_transform(X)
@@ -264,7 +265,7 @@ def kmeans_comparison_satimage():
 
     print(results)
     print('\n\n')
-    print_binary_metrics(X, results)
+    print_multi_metrics(X, results)
 
     #PCA figures
     fig = plt.figure(figsize=(15, 5))
@@ -331,6 +332,7 @@ def kmeans_comparison_satimage():
     ax.set_ylabel('Y', fontsize=13)
     plt.show()
 
+
 def kmeans_comparison_credita():
     X, y = datasets.load_credita()
     results = []
@@ -359,7 +361,7 @@ def kmeans_comparison_credita():
     # run several times and keep the best result
     for _ in range(10):
         res = tsne.fit_transform(X)
-        print("B")
+        
         if tsne.kl_divergence_ <= best_tsne.kl_divergence_:
             best_tsne = tsne
             X_trans2 = res
@@ -405,7 +407,7 @@ def kmeans_comparison_credita():
     ax[1, 1].scatter(X_trans2[y_pred == 1, 0], X_trans2[y_pred == 1, 1])
     ax[1, 1].title.set_text('KMeans on original dataset')
 
-    # y_pred = 1 - results[2][2]  # we'll invert labels for visualization purposes
+    y_pred = results[2][2]  # we'll invert labels for visualization purposes
     ax[1, 2].scatter(X_trans2[y_pred == 0, 0], X_trans2[y_pred == 0, 1])
     ax[1, 2].scatter(X_trans2[y_pred == 1, 0], X_trans2[y_pred == 1, 1])
     ax[1, 2].title.set_text('KMeans on dataset t-SNE')
