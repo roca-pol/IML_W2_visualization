@@ -66,7 +66,6 @@ def pca_kropt():
     plt.show()
 
 
-
 def pca_satimage():
     X, y = datasets.load_satimage()
 
@@ -189,7 +188,7 @@ def pca_comparison_kropt():
     ax[1].set_ylabel('PC2')
 
     ax[2].scatter(X_trans3[:, 0], X_trans3[:, 1])
-    ax[2].title.set_text('Sklearn PCA Kropt')
+    ax[2].title.set_text('Sklearn IPCA Kropt')
     ax[2].set_xlabel('PC1')
     ax[2].set_ylabel('PC2')
 
