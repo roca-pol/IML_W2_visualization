@@ -1,7 +1,10 @@
 import sys
 import click
 import numpy as np
+import random
 from matplotlib import pyplot as plt
+from matplotlib import colors as mcolors
+import seaborn as sns
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn import metrics
 from sklearn.manifold import TSNE
@@ -39,6 +42,28 @@ def pca(d):
 
 def pca_kropt():
     X, y = datasets.load_kropt()
+
+    # Divide & Conquer with ScatterMatrix
+    sns.set(style="ticks")
+    g = sns.pairplot(X)
+    g.fig.suptitle('Divide & Conquer - Kropt', y=1)
+    g.fig.set_size_inches(10, 10)
+    plt.show()
+
+    # Perform custom PCA
+    pca = PCA(n_components=2, verbose=True)
+    X_trans = pca.fit_transform(X)
+
+    # Reconstruct original dataset
+    X_recons = pca.inverse_transform(X_trans)
+
+    # Divide & Conquer for reconstructed data
+    sns.set(style="ticks")
+    g = sns.pairplot(pd.DataFrame(data=X_recons, columns=X.columns))
+    g.fig.suptitle('Divide & Conquer - Reconstructed Kropt', y=1)
+    g.fig.set_size_inches(10, 10)
+    plt.show()
+
 
 
 def pca_satimage():
@@ -140,6 +165,36 @@ def pca_comparison(d):
 def pca_comparison_kropt():
     X, y = datasets.load_kropt()
 
+    # Perform custom PCA, sklearn PCA and IPCA transformations
+
+    pca = PCA(n_components=2, verbose=True)
+    X_trans1 = pca.fit_transform(X)
+
+    skpca = skPCA(n_components=2)
+    X_trans2 = skpca.fit_transform(X)
+
+    ipca = IncrementalPCA(n_components=2, batch_size=5000)
+    X_trans3 = ipca.fit_transform(X)
+
+    # Plot transformed spaces
+    fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+    ax[0].scatter(X_trans1[:, 0], X_trans1[:, 1])
+    ax[0].title.set_text('Custom PCA Kropt')
+    ax[0].set_xlabel('PC1')
+    ax[0].set_ylabel('PC2')
+
+    ax[1].scatter(X_trans2[:, 0], X_trans2[:, 1])
+    ax[1].title.set_text('Sklearn PCA Kropt')
+    ax[1].set_xlabel('PC1')
+    ax[1].set_ylabel('PC2')
+
+    ax[2].scatter(X_trans3[:, 0], X_trans3[:, 1])
+    ax[2].title.set_text('Sklearn PCA Kropt')
+    ax[2].set_xlabel('PC1')
+    ax[2].set_ylabel('PC2')
+
+    plt.show()
+
 
 def pca_comparison_satimage():
     X, y = datasets.load_satimage()
@@ -226,6 +281,101 @@ def kmeans_comparison(d):
 
 def kmeans_comparison_kropt():
     X, y = datasets.load_kropt()
+    results = []
+    from sklearn.metrics.cluster import davies_bouldin_score
+    print(davies_bouldin_score(X, y))
+
+    # Apply custom PCA for dimension reduction
+    pca = PCA(n_components=2, verbose=True)
+    X_trans = pca.fit_transform(X)
+
+    # Apply K-Means to original data
+    kmeans = KMeans(k=18, n_init=50)
+    y_pred = kmeans.fit_predict(X)
+    results.append(('KMeans', y, y_pred))
+
+    # Apply K-Means to transformed data
+    kmeans = KMeans(k=18, n_init=50)
+    y_pred_PCA = kmeans.fit_predict(X_trans)
+    results.append(('KMeans-PCA', y, y_pred_PCA))
+
+    # t-SNE ------------------------
+    # transform dataset with t-SNE
+    best_tsne = TSNE(2)
+    tsne = best_tsne
+
+    # run several times and keep the best result
+    for _ in range(1):  # Too much time duration with big dataset like Kropt
+        res = tsne.fit_transform(X)
+
+        if tsne.kl_divergence_ <= best_tsne.kl_divergence_:
+            best_tsne = tsne
+            X_trans2 = res
+
+        tsne = TSNE(2)
+
+    # run KMeans on reduced dataset
+    kmeans = KMeans(k=18, n_init=50)
+    y_pred_tsne = kmeans.fit_predict(X_trans2)
+    results.append(('KMeans-TSNE', y, y_pred_tsne))
+
+    print('\n\n')
+    print_multi_metrics(X, results)
+
+    # Results Visualization
+
+    total_colors = mcolors.cnames
+    selected_colors = random.sample(list(total_colors), k=18)
+
+    fig, ax = plt.subplots(2, 3, figsize=(30, 10))
+
+    # PCA result visualization
+
+    cvec = [selected_colors[label] for label in y]
+
+    ax[0, 0].scatter(X_trans[:, 0], X_trans[:, 1], c=cvec, alpha=0.5)
+    ax[0, 0].title.set_text('Kropt Groundtruth - Visual PCA')
+    ax[0, 0].set_xlabel('PC1')
+    ax[0, 0].set_ylabel('PC2')
+
+    cvec = [selected_colors[label] for label in y_pred]
+
+    ax[0, 1].scatter(X_trans[:, 0], X_trans[:, 1], c=cvec, alpha=0.5)
+    ax[0, 1].title.set_text('K-Means Clustering - Visual PCA')
+    ax[0, 1].set_xlabel('PC1')
+    ax[0, 1].set_ylabel('PC2')
+
+    cvec = [selected_colors[label] for label in y_pred_PCA]
+
+    ax[0, 2].scatter(X_trans[:, 0], X_trans[:, 1], c=cvec, alpha=0.5)
+    ax[0, 2].title.set_text('K-Means PCA Kropt')
+    ax[0, 2].set_xlabel('PC1')
+    ax[0, 2].set_ylabel('PC2')
+
+    # t-SNE result visualization
+
+    cvec = [selected_colors[label] for label in y]
+
+    ax[1, 0].scatter(X_trans2[:, 0], X_trans2[:, 1], c=cvec, alpha=0.5)
+    ax[1, 0].title.set_text('Kropt Groundtruth - Visual t-SNE')
+    ax[1, 0].set_xlabel('PC1')
+    ax[1, 0].set_ylabel('PC2')
+
+    cvec = [selected_colors[label] for label in y_pred]
+
+    ax[1, 1].scatter(X_trans2[:, 0], X_trans2[:, 1], c=cvec, alpha=0.5)
+    ax[1, 1].title.set_text('K-Means Clustering - Visual t-SNE')
+    ax[1, 1].set_xlabel('PC1')
+    ax[1, 1].set_ylabel('PC2')
+
+    cvec = [selected_colors[label] for label in y_pred_tsne]
+
+    ax[1, 2].scatter(X_trans2[:, 0], X_trans2[:, 1], c=cvec, alpha=0.5)
+    ax[1, 2].title.set_text('K-Means t-SNE Kropt')
+    ax[1, 2].set_xlabel('PC1')
+    ax[1, 2].set_ylabel('PC2')
+
+    plt.show()
 
 
 def kmeans_comparison_satimage():
