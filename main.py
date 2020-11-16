@@ -17,6 +17,7 @@ from cluster import KMeans
 from evaluation import print_binary_metrics, print_multi_metrics
 import pandas as pd
 
+
 @click.group()
 def cli():
     pass
@@ -122,7 +123,6 @@ def pca_credita():
 
     # transform dataset with PCA
     pca = PCA(2, verbose=True)
-    # pca = skPCA(2)
     X_trans = pca.fit_transform(X)
 
     ax[1].scatter(X_trans[:, 0], X_trans[:, 1])
@@ -282,8 +282,8 @@ def kmeans_comparison(d):
 def kmeans_comparison_kropt():
     X, y = datasets.load_kropt()
     results = []
-    from sklearn.metrics.cluster import davies_bouldin_score
-    print(davies_bouldin_score(X, y))
+    # from sklearn.metrics.cluster import davies_bouldin_score
+    # print(davies_bouldin_score(X, y))
 
     # Apply custom PCA for dimension reduction
     pca = PCA(n_components=2, verbose=True)
@@ -387,11 +387,11 @@ def kmeans_comparison_satimage():
     pca = PCA(2, verbose=True)
     X_trans = pca.fit_transform(X)
 
-    kmeans = KMeans(k=6, n_init=50)
+    kmeans = KMeans(k=6, n_init=20)
     y_pred = kmeans.fit_predict(X)
     results.append(('KMeans', y, y_pred))
 
-    kmeans = KMeans(k=6, n_init=50)
+    kmeans = KMeans(k=6, n_init=20)
     y_pred_PCA = kmeans.fit_predict(X_trans)
     results.append(('KMeans-PCA', y, y_pred_PCA))
 
@@ -400,16 +400,16 @@ def kmeans_comparison_satimage():
     best_tsne = TSNE(2)
     tsne = best_tsne
     # run several times and keep the best result
-    for _ in range(10):
+    for _ in range(3):
         res = tsne.fit_transform(X)
-        print("B")
+        
         if tsne.kl_divergence_ <= best_tsne.kl_divergence_:
             best_tsne = tsne
             X_trans2 = res
 
         tsne = TSNE(2)
     # run KMeans on reduced dataset
-    kmeans = KMeans(k=6, n_init=50)
+    kmeans = KMeans(k=6, n_init=20)
     y_pred_tSNE = kmeans.fit_predict(X_trans2)
     results.append(('KMeans-TSNE', y, y_pred_tSNE))
 
@@ -488,9 +488,17 @@ def kmeans_comparison_credita():
     results = []
 
     # PCA --------------------------
-    # transform dataset with our PCA
+    # transform dataset with our PCA into 2 components
+    # for better visualization in 2 dimensions
     pca = PCA(2, verbose=True)
-    X_trans1 = pca.fit_transform(X)
+    X_pca_2d = pca.fit_transform(X)
+
+    # the 2 last components are significantly lower than the rest
+    # thus, they do not bring relevant (enough) information and can
+    # be truncated safely
+    k = X.shape[1] - 2
+    pca2 = PCA(k, verbose=True)
+    X_pca = pca2.fit_transform(X)
 
     # run KMeans on original dataset
     kmeans = KMeans(k=2, n_init=50)
@@ -499,7 +507,7 @@ def kmeans_comparison_credita():
 
     # run KMeans on reduced dataset
     kmeans = KMeans(k=2, n_init=50)
-    y_pred = kmeans.fit_predict(X_trans1)
+    y_pred = kmeans.fit_predict(X_pca)
     results.append(('KMeans-PCA', y, y_pred))
 
 
@@ -514,13 +522,13 @@ def kmeans_comparison_credita():
         
         if tsne.kl_divergence_ <= best_tsne.kl_divergence_:
             best_tsne = tsne
-            X_trans2 = res
+            X_tsne = res
 
         tsne = TSNE(2)
 
     # run KMeans on reduced dataset
     kmeans = KMeans(k=2, n_init=50)
-    y_pred = kmeans.fit_predict(X_trans2)
+    y_pred = kmeans.fit_predict(X_tsne)
     results.append(('KMeans-TSNE', y, y_pred))
     
     print('\n\n')
@@ -532,34 +540,34 @@ def kmeans_comparison_credita():
     plt.subplots_adjust(bottom=.10, left=.05, top=.90, right=.95)
 
     # PCA --------------------------
-    ax[0, 0].scatter(X_trans1[y == 0, 0], X_trans1[y == 0, 1])
-    ax[0, 0].scatter(X_trans1[y == 1, 0], X_trans1[y == 1, 1])
+    ax[0, 0].scatter(X_pca_2d[y == 0, 0], X_pca_2d[y == 0, 1])
+    ax[0, 0].scatter(X_pca_2d[y == 1, 0], X_pca_2d[y == 1, 1])
     ax[0, 0].title.set_text('Credit-A PCA')
 
     y_pred = results[0][2]
-    ax[0, 1].scatter(X_trans1[y_pred == 0, 0], X_trans1[y_pred == 0, 1])
-    ax[0, 1].scatter(X_trans1[y_pred == 1, 0], X_trans1[y_pred == 1, 1])
+    ax[0, 1].scatter(X_pca_2d[y_pred == 0, 0], X_pca_2d[y_pred == 0, 1])
+    ax[0, 1].scatter(X_pca_2d[y_pred == 1, 0], X_pca_2d[y_pred == 1, 1])
     ax[0, 1].title.set_text('KMeans on original dataset')
 
     y_pred = 1 - results[1][2]  # we'll invert labels for visualization purposes
-    ax[0, 2].scatter(X_trans1[y_pred == 0, 0], X_trans1[y_pred == 0, 1])
-    ax[0, 2].scatter(X_trans1[y_pred == 1, 0], X_trans1[y_pred == 1, 1])
+    ax[0, 2].scatter(X_pca_2d[y_pred == 0, 0], X_pca_2d[y_pred == 0, 1])
+    ax[0, 2].scatter(X_pca_2d[y_pred == 1, 0], X_pca_2d[y_pred == 1, 1])
     ax[0, 2].title.set_text('KMeans on dataset PCA')
 
 
     # t-SNE -------------------------
-    ax[1, 0].scatter(X_trans2[y == 0, 0], X_trans2[y == 0, 1])
-    ax[1, 0].scatter(X_trans2[y == 1, 0], X_trans2[y == 1, 1])
+    ax[1, 0].scatter(X_tsne[y == 0, 0], X_tsne[y == 0, 1])
+    ax[1, 0].scatter(X_tsne[y == 1, 0], X_tsne[y == 1, 1])
     ax[1, 0].title.set_text('Credit-A t-SNE')
 
     y_pred = results[0][2]
-    ax[1, 1].scatter(X_trans2[y_pred == 0, 0], X_trans2[y_pred == 0, 1])
-    ax[1, 1].scatter(X_trans2[y_pred == 1, 0], X_trans2[y_pred == 1, 1])
+    ax[1, 1].scatter(X_tsne[y_pred == 0, 0], X_tsne[y_pred == 0, 1])
+    ax[1, 1].scatter(X_tsne[y_pred == 1, 0], X_tsne[y_pred == 1, 1])
     ax[1, 1].title.set_text('KMeans on original dataset')
 
     y_pred = results[2][2]  # we'll invert labels for visualization purposes
-    ax[1, 2].scatter(X_trans2[y_pred == 0, 0], X_trans2[y_pred == 0, 1])
-    ax[1, 2].scatter(X_trans2[y_pred == 1, 0], X_trans2[y_pred == 1, 1])
+    ax[1, 2].scatter(X_tsne[y_pred == 0, 0], X_tsne[y_pred == 0, 1])
+    ax[1, 2].scatter(X_tsne[y_pred == 1, 0], X_tsne[y_pred == 1, 1])
     ax[1, 2].title.set_text('KMeans on dataset t-SNE')
 
     plt.show()
